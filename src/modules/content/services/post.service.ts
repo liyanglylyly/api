@@ -6,6 +6,7 @@ import { isFunction, isNil, omit } from 'lodash';
 import { EntityNotFoundError, IsNull, Not, SelectQueryBuilder } from 'typeorm';
 import { PostOrderType } from '../constants';
 import { paginate } from '../../database/helpers';
+import { CreatePostDto, UpdatePostDto } from '@/modules/content/dtos';
 
 @Injectable()
 export class PostService {
@@ -44,8 +45,15 @@ export class PostService {
    * 创建文章
    * @param data
    */
-  async create(data: Record<string, any>) {
-    const item = await this.repository.save(data);
+  async create(data: CreatePostDto) {
+    let publishedAt: Date | null;
+    if (!isNil(data.publish)) {
+      publishedAt = data.publish ? new Date() : null;
+    }
+    const item = await this.repository.save({
+      ...omit(data, ['publish']),
+      publishedAt,
+    });
 
     return this.detail(item.id);
   }
@@ -54,8 +62,16 @@ export class PostService {
    * 更新文章
    * @param data
    */
-  async update(data: Record<string, any>) {
-    await this.repository.update(data.id, omit(data, ['id']));
+  async update(data: UpdatePostDto) {
+    console.log(data);
+    let publishedAt: Date | null;
+    if (!isNil(data.publish)) {
+      publishedAt = data.publish ? new Date() : null;
+    }
+    await this.repository.update(data.id, {
+      ...omit(data, ['id', 'publish']),
+      publishedAt,
+    });
     return this.detail(data.id);
   }
 
