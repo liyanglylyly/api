@@ -1,5 +1,5 @@
 import { DataSource, EventSubscriber } from 'typeorm';
-import { SanitizeService } from '../services';
+import { SanitizeService } from '../services/sanitize.service';
 import { PostRepository } from '../repositories';
 import { PostEntity } from '../entities';
 import { PostBodyType } from '../constants';
