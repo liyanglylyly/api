@@ -4,7 +4,7 @@ import {
   PostRepository,
   TagRepository,
 } from '../repositories';
-import { PaginateOptions, QueryHook } from '../../database/types';
+import { QueryHook } from '../../database/types';
 import { PostEntity } from '../entities';
 import { isArray, isFunction, isNil, omit } from 'lodash';
 import {
@@ -22,19 +22,26 @@ import {
   UpdatePostDto,
 } from '@/modules/content/dtos';
 import { CategoryService } from '@/modules/content/services/category.service';
+import { BaseService } from '@/modules/database/base';
 
 type FindParams = {
   [key in keyof Omit<QueryPostDto, 'limit' | 'page'>]: QueryPostDto[key];
 };
 
 @Injectable()
-export class PostService {
+export class PostService extends BaseService<
+  PostEntity,
+  PostRepository,
+  FindParams
+> {
   constructor(
     protected repository: PostRepository,
     protected categoryRepository: CategoryRepository,
     protected categoryService: CategoryService,
     protected tagRepository: TagRepository,
-  ) {}
+  ) {
+    super(repository);
+  }
 
   /**
    * 获取分页数据
@@ -121,20 +128,31 @@ export class PostService {
         .of(post)
         .addAndRemove(data.tags, post.tags ?? []);
     }
-    await this.repository.update(data.id, {
+    const ops = {
       ...omit(data, ['id', 'tags', 'category', 'publish']),
       publishedAt,
-    });
+    };
+    await this.repository.update(data.id, ops);
     return this.detail(data.id);
   }
 
-  /**
-   * 删除文章
-   * @param id
-   */
-  async delete(id: string) {
-    const item = await this.repository.findOneByOrFail({ id });
-    return this.repository.remove(item);
+  async restore(ids: string[]) {
+    const items = await this.repository
+      .buildBaseQB()
+      .where('post.id IN (:...ids)', { ids })
+      .withDeleted()
+      .getMany();
+    // 过滤掉不在回收站中的数据
+    const trasheds = items.filter((item) => !isNil(item));
+    const trashedsIds = trasheds.map((item) => item.id);
+    if (trasheds.length < 1) return [];
+    await this.repository.restore(trashedsIds);
+    const qb = await this.buildListQuery(
+      this.repository.buildBaseQB(),
+      {},
+      async (qbuilder) => qbuilder.andWhereInIds(trashedsIds),
+    );
+    return qb.getMany();
   }
 
   /**
@@ -145,7 +163,7 @@ export class PostService {
    */
   protected async buildListQuery(
     qb: SelectQueryBuilder<PostEntity>,
-    options: Record<string, any>,
+    options: FindParams,
     callback?: QueryHook<PostEntity>,
   ) {
     const { category, tag, orderBy, isPublished } = options;

@@ -24,7 +24,7 @@ export class TagController {
   @Get()
   @SerializeOptions({})
   async list(@Query() options: QueryCategoryDto) {
-    return this.service.page(options);
+    return this.service.paginate(options);
   }
 
   @Get(':id')
@@ -48,6 +48,6 @@ export class TagController {
   @Delete(':id')
   @SerializeOptions({})
   async delete(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.service.delete(id);
+    return this.service.delete([id]);
   }
 }

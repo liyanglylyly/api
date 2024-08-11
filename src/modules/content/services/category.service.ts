@@ -1,18 +1,19 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CategoryRepository } from '@/modules/content/repositories';
 import { CategoryEntity } from '@/modules/content/entities';
 import { EntityNotFoundError } from 'typeorm';
-import {
-  CreateCategoryDto,
-  QueryCategoryDto,
-  UpdateCategoryDto,
-} from '@/modules/content/dtos';
-import { treePaginate } from '@/modules/database/helpers';
+import { CreateCategoryDto, UpdateCategoryDto } from '@/modules/content/dtos';
 import { isNil, omit } from 'lodash';
+import { BaseService } from '@/modules/database/base';
 
 @Injectable()
-export class CategoryService {
-  constructor(protected repository: CategoryRepository) {}
+export class CategoryService extends BaseService<
+  CategoryEntity,
+  CategoryRepository
+> {
+  constructor(protected repository: CategoryRepository) {
+    super(repository);
+  }
 
   /**
    * 查询分类树
@@ -22,37 +23,10 @@ export class CategoryService {
   }
 
   /**
-   * 获取分页数据
-   * @param options 分页选项
-   */
-  async paginate(options: QueryCategoryDto) {
-    const tree = await this.repository.findTrees();
-    const data = await this.repository.toFlatTrees(tree);
-    return treePaginate(options, data);
-  }
-
-  /**
-   * 获取数据详情
-   * @param id
-   */
-  async detail(id: string) {
-    return this.repository.findOneOrFail({
-      where: { id },
-      relations: ['parent'],
-    });
-  }
-
-  /**
    * 新增分类
    * @param data
    */
   async create(data: CreateCategoryDto) {
-    const i = await this.repository.findOne({
-      where: { name: data.name },
-    });
-    if (i) {
-      throw new HttpException('该分类已存在', HttpStatus.BAD_REQUEST);
-    }
     const item = await this.repository.save({
       ...data,
       parent: await this.getParent(undefined, data.parent),
@@ -81,27 +55,6 @@ export class CategoryService {
       await this.repository.save(item, { reload: true });
     }
     return item;
-  }
-
-  /**
-   * 删除分类
-   * @param id
-   */
-  async delete(id: string) {
-    const item = await this.repository.findOneOrFail({
-      where: { id },
-      relations: ['parent', 'children'],
-    });
-    // 把子分类提升一级
-    if (!isNil(item.children) && item.children.length > 0) {
-      const nchildren = [...item.children].map((c) => {
-        c.parent = item.parent;
-        return item;
-      });
-
-      await this.repository.save(nchildren, { reload: true });
-    }
-    return this.repository.remove(item);
   }
 
   /**

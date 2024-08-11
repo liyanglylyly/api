@@ -48,6 +48,6 @@ export class PostController {
   @Delete(':id')
   @SerializeOptions({ groups: ['post-detail'] })
   async delete(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.service.delete(id);
+    return this.service.delete([id]);
   }
 }
