@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CategoryRepository } from '@/modules/content/repositories';
 import { CategoryEntity } from '@/modules/content/entities';
 import { EntityNotFoundError } from 'typeorm';
@@ -47,6 +47,12 @@ export class CategoryService {
    * @param data
    */
   async create(data: CreateCategoryDto) {
+    const i = await this.repository.findOne({
+      where: { name: data.name },
+    });
+    if (i) {
+      throw new HttpException('该分类已存在', HttpStatus.BAD_REQUEST);
+    }
     const item = await this.repository.save({
       ...data,
       parent: await this.getParent(undefined, data.parent),
