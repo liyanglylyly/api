@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import {
   CategoryRepository,
   PostRepository,
@@ -77,6 +77,12 @@ export class PostService extends BaseService<
    * @param data
    */
   async create(data: CreatePostDto) {
+    const post = await this.repository.findOne({
+      where: { title: data.title },
+    });
+    if (post) {
+      throw new HttpException('该文章已经存在', HttpStatus.BAD_REQUEST);
+    }
     let publishedAt: Date | null;
     if (!isNil(data.publish)) {
       publishedAt = data.publish ? new Date() : null;
