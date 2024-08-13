@@ -7,12 +7,14 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AppPipe } from '@/modules/core/providers/app.pipe';
 import { AppInterceptor } from '@/modules/core/providers';
 import { AppFilter } from '@/modules/core/providers/app.filter';
+import { CategoryModule } from '@/modules/category/category.module';
 
 @Module({
   imports: [
     CoreModule.forRoot(),
     DatabaseModule.forRoot(database),
     ContentModule,
+    CategoryModule,
   ],
   providers: [
     {

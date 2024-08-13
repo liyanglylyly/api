@@ -16,3 +16,8 @@ export enum PostOrderType {
   COMMENT_COUNT = 'commentCount',
   CUSTOM = 'custom',
 }
+
+export enum CategoryStatus {
+  ONLINE = 1,
+  OFFLINE = 2,
+}
